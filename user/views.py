@@ -1,0 +1,105 @@
+from django.shortcuts import render
+from .serializer import *
+from rest_framework.permissions import IsAuthenticated,AllowAny
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.views import APIView
+from django.contrib.auth import authenticate
+from rest_framework import serializers
+from rest_framework.generics import ListCreateAPIView,ListAPIView
+from django.db.models import Subquery
+from django.db.models import Q
+
+# Create your views here.
+class SignUpView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self,request):
+        serializer = UserSerializer(data=request.data)
+
+        if serializer.is_valid():
+            user = serializer.save()
+            refresh = RefreshToken.for_user(user)
+            return Response({'message':'Signup successfull',
+                             'access':str(refresh.access_token),
+                             'refresh':str(refresh),
+                             "user": {
+                             "id": user.id,
+                             "username": user.username,
+                             "email": user.email,
+                             }
+                             },status=status.HTTP_201_CREATED)
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+class LoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self,request):
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        if not email or not password:
+            return Response({'details':'email and password is required'})
+        
+        try:
+            user_obj = Users.objects.get(email=email)
+        except Users.DoesNotExist: 
+            return Response({'details':'Invalid email or password'})  
+
+        user = authenticate(username=user_obj.username,password=password)
+
+        if not user:
+            return Response({'details':'User not found'})
+
+        refresh = RefreshToken.for_user(user)
+
+        return Response({'message':'Signup successfull',
+                             'access':str(refresh.access_token),
+                             'refresh':str(refresh),
+                             "user": {
+                             "id": user.id,
+                             "username": user.username,
+                             "email": user.email,
+                             }
+                             },status=status.HTTP_201_CREATED)
+    
+class FollowUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self,request,user_id):
+        user_to_follow = Users.objects.get(id=user_id)
+        follower = request.user
+
+        if follower == user_to_follow:
+            return Response({'error':'You can"t follow your self'},status=status.HTTP_400_BAD_REQUEST)
+        
+        Follow.objects.get_or_create(follower=follower,following=user_to_follow)
+        return Response({'message':'Followed successfull'})
+    
+class UnfollowUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self,request,user_id):
+        Follow.objects.filter(follower=request.user,following__id=user_id).delete()
+        return Response({'details':'Unfollowed Successfull'})    
+    
+# class ProfileView():  
+
+class SearchUserView(ListAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        search = self.request.query_params.get('search')
+        following_ids = Follow.objects.filter(follower=self.request.user).values_list('following_id', flat=True)
+        queryset = Users.objects.exclude(id__in=Subquery(following_ids))
+
+        if search:
+            queryset = queryset.filter(
+                Q(first_name__icontains = search) | 
+                Q( last_name__icontains = search)    
+            ).exclude(id=self.request.user.id)
+
+        return queryset  
+    
