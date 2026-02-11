@@ -8,4 +8,5 @@ urlpatterns = [
     path('likes/',LikePostView.as_view(),name='likes'),
     path('comments/',CommentView.as_view(),name='comments'),
     path('reply/',Reply_View.as_view(),name='reply'),
+    path('create_post/',Create_Post.as_view(),name='reply'),
 ]

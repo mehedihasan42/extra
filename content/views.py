@@ -7,12 +7,15 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.generics import ListCreateAPIView,RetrieveUpdateDestroyAPIView,CreateAPIView
 from django.shortcuts import get_object_or_404
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework import status
+from user.models import *
 
 # Create your views here.
 class Profile_Post_View(ListCreateAPIView):
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
 
     def get_queryset(self):
         user = self.request.user
@@ -25,13 +28,17 @@ class Profile_Post_View(ListCreateAPIView):
 
 class Newsfeed_View(ListAPIView):
     serializer_class = PostSerializer
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated] 
 
     def get_queryset(self):
         user = self.request.user
 
+        print("AUTH USER:", self.request.user)
+        print("IS AUTH:", self.request.user.is_authenticated)
+
         following_user = Follow.objects.filter(
-            followers = user
+            follower = user
         ).values_list('following',flat=True)
 
         queryset = Post.objects.filter(user__in = list(following_user)+[user.id]).order_by('-created_at')
@@ -48,12 +55,14 @@ class Create_Post(CreateAPIView):
 class UpdateDeletePost(RetrieveUpdateDestroyAPIView):
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
 
     def get_queryset(self):
         return Post.objects.filter(user = self.request.user)
 
 class LikePostView(APIView):
     permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
 
     def post(self,request,post_id):
         like,create = Like.objects.get_or_create(user=request.user,post_id=post_id)
@@ -65,6 +74,7 @@ class LikePostView(APIView):
 class CommentView(ListCreateAPIView):
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
 
     def get_queryset(self):
         post_id = self.request.query_params.get('post_id')
@@ -85,6 +95,7 @@ class CommentView(ListCreateAPIView):
 class Reply_View(ListCreateAPIView):
     serializer_class = ReplySerializer
     permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
 
     def get_queryset(self):
         comment_id = self.request.query_params.get('comment_id')
