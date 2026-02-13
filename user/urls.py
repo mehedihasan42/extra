@@ -13,4 +13,5 @@ urlpatterns = [
     path('follow/', FollowUserView.as_view(),name='follow'),
     path('unfollow/', UnfollowUserView.as_view(),name='unfollow'),
     path('searchUser/', SearchUserView.as_view(),name='searchUser'),
+    path('profile/', UserProfile.as_view(),name='profile'),
 ]

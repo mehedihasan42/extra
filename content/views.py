@@ -5,13 +5,18 @@ from .models import *
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.generics import ListCreateAPIView,RetrieveUpdateDestroyAPIView,CreateAPIView
+from rest_framework.generics import ListCreateAPIView,RetrieveUpdateDestroyAPIView,CreateAPIView,DestroyAPIView
 from django.shortcuts import get_object_or_404
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework import status
 from user.models import *
+from rest_framework.permissions import BasePermission
 
 # Create your views here.
+class IsOwner(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return obj.user == request.user
+    
 class Profile_Post_View(ListCreateAPIView):
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticated]
@@ -34,15 +39,15 @@ class Newsfeed_View(ListAPIView):
     def get_queryset(self):
         user = self.request.user
 
-        print("AUTH USER:", self.request.user)
-        print("IS AUTH:", self.request.user.is_authenticated)
-
         following_user = Follow.objects.filter(
             follower = user
         ).values_list('following',flat=True)
 
         queryset = Post.objects.filter(user__in = list(following_user)+[user.id]).order_by('-created_at')
         return queryset
+    
+    def get_serializer_context(self):
+        return {'request': self.request}
     
 class Create_Post(CreateAPIView):
     queryset = Post.objects.all()
@@ -64,12 +69,19 @@ class LikePostView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication]
 
-    def post(self,request,post_id):
-        like,create = Like.objects.get_or_create(user=request.user,post_id=post_id)
-        if not create:
+    def post(self, request, post_id):
+        post = Post.objects.get(id=post_id)
+        like, created = Like.objects.get_or_create(user=request.user, post=post)
+
+        if not created:
             like.delete()
-            return Response({'details':'Unliked'})
-        return Response({'message':'Liked'},status=status.HTTP_201_CREATED)
+            liked = False
+        else:
+            liked = True
+
+        total_likes = Like.objects.filter(post=post).count()
+
+        return Response({ "liked": liked,"total_likes": total_likes}, status=status.HTTP_200_OK)
     
 class CommentView(ListCreateAPIView):
     serializer_class = CommentSerializer
@@ -90,6 +102,15 @@ class CommentView(ListCreateAPIView):
             user = self.request.user,
             post = post
         )
+
+class CommentUpdateDelete(RetrieveUpdateDestroyAPIView):
+     serializer_class = CommentSerializer
+     permission_classes = [IsAuthenticated,IsOwner]
+     authentication_classes = [JWTAuthentication]
+     lookup_field = 'id'
+
+     def get_queryset(self):
+         return Comment.objects.all()
 
 
 class Reply_View(ListCreateAPIView):
@@ -112,3 +133,29 @@ class Reply_View(ListCreateAPIView):
             comment = comment
         )
     
+
+class SaveView(ListCreateAPIView):
+    serializer_class = SaveSerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def get_queryset(self):
+        return Save.objects.filter(user=self.request.user)
+    
+    def perform_create(self, serializer):
+     post = serializer.validated_data['post']
+     Save.objects.get_or_create(user=self.request.user, post=post)
+
+
+class UnsaveView(DestroyAPIView):
+    serializer_class = SaveSerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def get_object(self):
+        post_id = self.kwargs.get("post_id")
+        return get_object_or_404(
+            Save,
+            user=self.request.user,
+            post_id=post_id
+        )

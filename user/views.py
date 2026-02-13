@@ -7,7 +7,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
 from django.contrib.auth import authenticate
 from rest_framework import serializers
-from rest_framework.generics import ListCreateAPIView,ListAPIView
+from rest_framework.generics import ListCreateAPIView,ListAPIView,RetrieveUpdateAPIView,CreateAPIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.db.models import Subquery
 from django.db.models import Q
@@ -110,4 +110,13 @@ class SearchUserView(ListAPIView):
             ).exclude(id=self.request.user.id)
 
         return queryset  
-    
+
+
+class UserProfile(RetrieveUpdateAPIView):
+    serializer_class = ProfileSerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def get_object(self):
+        profile,create = Profile.objects.get_or_create(user=self.request.user)  
+        return profile

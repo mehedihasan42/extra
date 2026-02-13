@@ -31,3 +31,6 @@ class Like(models.Model):
 class Save(models.Model):
     user = models.ForeignKey(Users,on_delete=models.CASCADE)
     post = models.ForeignKey(Post,on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ['user', 'post']
