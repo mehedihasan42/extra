@@ -10,8 +10,12 @@ from rest_framework import routers
 urlpatterns = [
     path('signup/', SignUpView.as_view(),name='signup'),
     path('login/', LoginView.as_view(),name='login'),
-    path('follow/', FollowUserView.as_view(),name='follow'),
-    path('unfollow/', UnfollowUserView.as_view(),name='unfollow'),
+    path('follow/<int:id>/', FollowUserView.as_view(),name='follow'),
+    path('unfollow/<int:id>/', UnfollowUserView.as_view(),name='unfollow'),
     path('searchUser/', SearchUserView.as_view(),name='searchUser'),
     path('profile/', UserProfile.as_view(),name='profile'),
+    path('suggest-follow/', SuggestFollowView.as_view(),name='profile'),
+    path('followers/', FollowerList.as_view(),name='followers'),
+    path('following/', FollowingList.as_view(),name='following'),
+    path('public_profile/<int:id>/', PublicUserProfileView.as_view(),name='public_profile'),
 ]

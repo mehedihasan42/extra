@@ -12,4 +12,6 @@ urlpatterns = [
     path('create_post/',Create_Post.as_view(),name='reply'),
     path('save/', SaveView.as_view(), name='save-post'),
     path('unsave/<int:post_id>/', UnsaveView.as_view(), name='unsave-post'),
+    path('update_post/<int:id>/', UpdateDeletePost.as_view(),name='update_post'),
+    path('delete_post/<int:id>/', UpdateDeletePost.as_view(),name='update_post')
 ]

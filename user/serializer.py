@@ -5,7 +5,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = Users
         fields = [
-            'username','first_name','last_name','email',
+            'id','username','first_name','last_name','email',
             'password','phone','present_address','hometown'
         ]
         extra_kwargs = {
@@ -20,9 +20,16 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
 
-
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = '__all__'   
         read_only_fields = ['user']     
+
+
+class PublicProfileSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Profile
+        fields = ['id', 'user', 'bio', 'profile']

@@ -62,8 +62,12 @@ class UpdateDeletePost(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication]
 
-    def get_queryset(self):
-        return Post.objects.filter(user = self.request.user)
+    def get_object(self):
+        return get_object_or_404(
+            Post,
+            id=self.kwargs['id'],
+            user=self.request.user
+        )
 
 class LikePostView(APIView):
     permission_classes = [IsAuthenticated]
